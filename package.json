@@ -1,0 +1,52 @@
+{
+  "name": "my-prompt-extension",
+  "displayName": "My Prompt Extension",
+  "description": "A VS Code extension that allows building prompts with file context.",
+  "version": "0.0.1",
+  "publisher": "yourpublisher",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:myPromptExtension.openPanel"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "myPromptExtension.openPanel",
+        "title": "Open Prompt Panel"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "myPromptExtension",
+          "title": "Prompt Builder",
+          "icon": "resources/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "myPromptExtension": [
+        {
+          "id": "myPromptExtensionView",
+          "name": "Prompt Panel"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^4.0.0"
+  }
+}
