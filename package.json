@@ -1,55 +1,51 @@
 {
   "name": "my-prompt-extension",
   "displayName": "My Prompt Extension",
-  "description": "A VS Code extension that allows building prompts with file context.",
+  "description": "A VSCode extension for managing prompts",
   "version": "0.0.1",
   "publisher": "yourpublisher",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onCommand:myPromptExtension.openPanel"
+    "onCommand:myPromptExtension.openPromptPanel"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "myPromptExtension.openPanel",
+        "command": "myPromptExtension.openPromptPanel",
         "title": "Open Prompt Panel"
       }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "myPromptExtension",
-          "title": "Prompt Builder",
-          "icon": "resources/icon.png"
-        }
-      ]
-    },
-    "views": {
-      "myPromptExtension": [
-        {
-          "id": "myPromptExtensionView",
-          "name": "Prompt Panel"
-        }
-      ]
-    }
+    ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "postinstall": "npm run compile"
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/node": "^16.0.0",
-    "@types/vscode": "^1.75.0",
-    "typescript": "^4.0.0"
-  },
-  "dependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.56.0",
+    "mocha": "^10.2.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
     "ignore": "^6.0.2"
   }
 }

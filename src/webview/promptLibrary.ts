@@ -39,6 +39,58 @@ export async function getFileTree(rootPath: string, depth: number): Promise<{nam
     return walkDirectory(rootPath, depth, 0, ig);
 }
 
+export async function getCodebaseTreeStructure(rootPath: string, depth: number): Promise<string> {
+    const ig = ignore.default();
+    ig.add(DEFAULT_IGNORE);
+    
+    try {
+        const gitignorePath = path.join(rootPath, '.gitignore');
+        if (fs.existsSync(gitignorePath)) {
+            const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+            ig.add(gitignoreContent);
+        }
+    } catch (error) {
+        console.error('Error reading .gitignore:', error);
+    }
+
+    const projectName = path.basename(rootPath).toUpperCase();
+    let treeStructure = `/${projectName}\n`;
+    
+    function buildTree(dir: string, prefix: string = '', currentDepth: number = 0): string {
+        if (currentDepth > depth) return '';
+        
+        let result = '';
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const items = entries.filter(entry => {
+            const relativePath = path.relative(
+                workspace.workspaceFolders?.[0].uri.fsPath || '',
+                path.join(dir, entry.name)
+            );
+            return !ig.ignores(relativePath);
+        });
+
+        items.forEach((entry, index) => {
+            const isLast = index === items.length - 1;
+            const newPrefix = prefix + (isLast ? '  ' : '│ ');
+            const entryPrefix = prefix + (isLast ? '└──' : '├──');
+            
+            result += `${entryPrefix} ${entry.name}\n`;
+            
+            if (entry.isDirectory() && currentDepth < depth) {
+                result += buildTree(
+                    path.join(dir, entry.name),
+                    newPrefix,
+                    currentDepth + 1
+                );
+            }
+        });
+        
+        return result;
+    }
+    
+    return treeStructure + buildTree(rootPath);
+}
+
 async function walkDirectory(
     dir: string, 
     maxDepth: number, 
