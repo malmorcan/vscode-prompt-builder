@@ -6,11 +6,14 @@ export class CodebaseTree {
     private depthControl!: HTMLElement;
     private treeDepthInput!: HTMLInputElement;
     private onTreeConfigChanged: (include: boolean, depth: number) => void;
+    private promptEditor: any;
 
     constructor(
-        onTreeConfigChanged: (include: boolean, depth: number) => void
+        onTreeConfigChanged: (include: boolean, depth: number) => void,
+        promptEditor?: any
     ) {
         this.onTreeConfigChanged = onTreeConfigChanged;
+        this.promptEditor = promptEditor;
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -32,17 +35,26 @@ export class CodebaseTree {
         if (this.includeTree) {
             this.onTreeConfigChanged(true, this.treeDepth);
         }
+        if (this.promptEditor) {
+            this.promptEditor.updateTokenCount();
+        }
     }
 
     private handleDepthChange() {
         if (this.includeTree) {
             this.treeDepth = parseInt(this.treeDepthInput.value, 10);
             this.onTreeConfigChanged(true, this.treeDepth);
+            if (this.promptEditor) {
+                this.promptEditor.updateTokenCount();
+            }
         }
     }
 
     public updateTreeStructure(structure: string) {
         this.treeStructure = structure;
+        if (this.promptEditor) {
+            this.promptEditor.updateTokenCount();
+        }
     }
 
     public getTreeStructure(): string {

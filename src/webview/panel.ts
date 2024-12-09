@@ -65,7 +65,7 @@ export class PromptPanel {
         // Get the local path to main script run in the webview
         const nonce = getNonce();
 
-        return getWebviewContent(nonce).replace('${scriptUri}', scriptUri.toString());
+        return getWebviewContent(nonce, scriptUri.toString());
     }
 
     public dispose() {

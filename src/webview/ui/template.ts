@@ -1,6 +1,6 @@
 import { getStyles } from './styles';
 
-export function getWebviewContent(nonce: string): string {
+export function getWebviewContent(nonce: string, scriptUri: string): string {
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -46,6 +46,9 @@ export function getWebviewContent(nonce: string): string {
         <div class="section">
             <h2>Prompt Editor</h2>
             <textarea id="promptInput" rows="10" placeholder="Enter your prompt here..."></textarea>
+            <div class="token-count-container">
+                <span id="tokenCount">0 tokens</span>
+            </div>
             <div style="margin-top: 8px;">
                 <button id="getSelectedBtn">Get Selected Files</button>
                 <button id="copyPromptBtn">Copy Prompt</button>
@@ -55,7 +58,6 @@ export function getWebviewContent(nonce: string): string {
         <div class="section">
             <h2>Context</h2>
             <div id="contextArea"></div>
-            <div class="token-count">Token Count: <span id="tokenCount">0</span></div>
         </div>
 
         <div class="section">
@@ -65,7 +67,7 @@ export function getWebviewContent(nonce: string): string {
             </div>
         </div>
 
-        <script nonce="${nonce}" src="\${scriptUri}"></script>
+        <script nonce="${nonce}" src="${scriptUri}"></script>
     </body>
     </html>`;
 } 
