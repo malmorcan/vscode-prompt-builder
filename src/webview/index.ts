@@ -32,6 +32,19 @@ window.addEventListener('load', () => {
             vscode,
             (files: string[]) => {
                 console.log('Files selected:', files);
+                // When files change, request their content and update prompt editor
+                if (files.length > 0) {
+                    vscode.postMessage({ 
+                        command: 'getFileContent', 
+                        files 
+                    });
+                } else {
+                    // If no files selected, clear the context
+                    promptEditor.updateContext({
+                        files: {},
+                        treeStructure: codebaseTree.getTreeStructure()
+                    });
+                }
             }
         );
 

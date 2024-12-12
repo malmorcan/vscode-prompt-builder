@@ -4,9 +4,8 @@ A VS Code extension that allows building prompts with file context, customizable
 
 ## Features
 - Browse your project files up to a certain depth.
-- Select files to include as context in a final prompt.
+- Select files or directories to include as context in a final prompt.
 - Copy the final prompt to your clipboard.
-- Save and load prompts for reuse.
 
 ## Usage
 1. Run `F5` to launch a new VS Code window with the extension.

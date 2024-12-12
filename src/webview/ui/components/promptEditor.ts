@@ -107,8 +107,10 @@ export class PromptEditor {
     }
 
     public updateContext(context: PromptContext) {
+        // Clear out old files that aren't in the new context
+        const newFiles = context.files || {};
         this.currentContext = {
-            files: { ...this.currentContext.files, ...context.files },
+            files: newFiles, // Replace entire files object instead of merging
             treeStructure: context.treeStructure
         };
         

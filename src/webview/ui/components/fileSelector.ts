@@ -360,6 +360,7 @@ export class FileSelector {
         removeBtn.onclick = () => {
             this.selectedFilePaths.delete(path);
             this.updateSelectedFiles();
+            // Important: Notify that files have changed
             this.onFilesChanged(Array.from(this.selectedFilePaths));
             this.saveState();
         };
