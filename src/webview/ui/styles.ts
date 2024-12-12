@@ -119,14 +119,41 @@ export function getStyles(): string {
             padding: 6px 8px;
             cursor: pointer;
             font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .dropdown-item:hover {
             background-color: var(--vscode-list-hoverBackground);
         }
 
+        .item-icon {
+            flex-shrink: 0;
+            width: 16px;
+            text-align: center;
+        }
+
+        .select-all-btn {
+            margin-left: auto;
+            padding: 2px 6px;
+            font-size: 11px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .select-all-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+
         .selected-files {
             margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .selected-file {

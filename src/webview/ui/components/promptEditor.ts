@@ -13,19 +13,17 @@ export class PromptEditor {
     private onPromptChanged: (prompt: string) => void;
     private currentContext: PromptContext = { files: {} };
     private codebaseTree?: CodebaseTree;
+    private vscode: any;
 
     constructor(
         onPromptChanged: (prompt: string) => void,
-        codebaseTree?: CodebaseTree
+        codebaseTree?: CodebaseTree,
+        vscode?: any
     ) {
-        console.log('Initializing PromptEditor...');
-        
-        // Get DOM elements
         const promptInput = document.getElementById('promptInput') as HTMLTextAreaElement;
         const contextArea = document.getElementById('contextArea') as HTMLElement;
         const tokenCount = document.getElementById('tokenCount') as HTMLElement;
 
-        // Validate DOM elements
         if (!promptInput || !contextArea || !tokenCount) {
             throw new Error('Required DOM elements not found for PromptEditor');
         }
@@ -35,111 +33,176 @@ export class PromptEditor {
         this.tokenCount = tokenCount;
         this.onPromptChanged = onPromptChanged;
         this.codebaseTree = codebaseTree;
+        this.vscode = vscode;
 
-        console.log('PromptEditor elements initialized');
-        
         this.setupEventListeners();
-        this.updateTokenCount(); // Initial token count
+        this.updateTokenCount();
     }
 
     private setupEventListeners() {
-        console.log('Setting up PromptEditor event listeners');
-        
         this.promptInput.addEventListener('input', (event) => {
             const value = (event.target as HTMLTextAreaElement).value;
-            console.log('Prompt input changed:', value.slice(0, 50) + '...');
             this.onPromptChanged(value);
             this.updateTokenCount();
         });
+
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        if (copyPromptBtn) {
+            copyPromptBtn.addEventListener('click', () => {
+                const finalPrompt = this.buildFinalPrompt();
+                if (this.vscode) {
+                    this.vscode.postMessage({ 
+                        command: 'copyToClipboard', 
+                        text: finalPrompt 
+                    });
+                }
+                // Show ephemeral notification in the webview
+                const notification = document.getElementById('copyNotification');
+                if (notification) {
+                    notification.style.display = 'block';
+                    // Hide the notification after 2 seconds
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                    }, 2000);
+                }
+            });
+        }
+    }
+
+    private buildFinalPrompt(): string {
+        // Follow exactly the user's requested structure
+        const mainPrompt = this.promptInput.value;
+        let finalPrompt = `[Prompt Start]\n\n${mainPrompt}\n\n[Context]\n\n`;
+
+        // Add selected files
+        const fileEntries = Object.entries(this.currentContext.files);
+        for (const [filePath, content] of fileEntries) {
+            finalPrompt += `- File: ${filePath}\n  Content:\n${content}\n\n`;
+        }
+
+        // Add codebase tree if available
+        const includeTreeToggle = document.getElementById('includeTreeToggle') as HTMLInputElement;
+        if (includeTreeToggle?.checked && this.codebaseTree) {
+            const treeStructure = this.codebaseTree.getTreeStructure();
+            if (treeStructure && treeStructure.trim()) {
+                // Add tree as requested:
+                // - Codebase Tree:
+                //   <tree content>
+                finalPrompt += `- Codebase Tree:\n${treeStructure}\n\n`;
+            }
+        }
+
+        finalPrompt += `[End of Context]\n`;
+
+        return finalPrompt;
     }
 
     public getPrompt(): string {
-        return this.promptInput.value;
+        return this.buildFinalPrompt();
     }
 
     public setPrompt(prompt: string) {
-        console.log('Setting prompt:', prompt.slice(0, 50) + '...');
         this.promptInput.value = prompt;
         this.updateTokenCount();
     }
 
     public updateContext(context: PromptContext) {
-        console.log('Updating context:', {
-            fileCount: Object.keys(context.files).length,
-            hasTree: !!context.treeStructure
-        });
-
-        // Store the current context
-        this.currentContext = { ...context };
+        this.currentContext = {
+            files: { ...this.currentContext.files, ...context.files },
+            treeStructure: context.treeStructure
+        };
         
-        this.contextArea.innerHTML = '';
-        
-        // Add file contents
-        Object.entries(context.files).forEach(([path, content]) => {
-            const block = document.createElement('div');
-            block.className = 'context-file';
-            block.textContent = `File: ${path}\n${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`;
-            this.contextArea.appendChild(block);
-        });
-
-        // Get tree structure from CodebaseTree if available
-        const treeStructure = this.codebaseTree?.getTreeStructure();
-        if (treeStructure) {
-            const treeBlock = document.createElement('div');
-            treeBlock.className = 'context-tree';
-            treeBlock.textContent = treeStructure;
-            this.contextArea.appendChild(treeBlock);
-        }
-
+        this.updateContextDisplay();
         this.updateTokenCount();
     }
 
-    public buildFinalPrompt(context: PromptContext): string {
-        let finalPrompt = this.promptInput.value;
-        const hasFiles = Object.keys(context.files).length > 0;
-        const treeStructure = this.codebaseTree?.getTreeStructure();
-        
-        if (hasFiles || treeStructure) {
-            finalPrompt += '\n\n[Context]\n';
-            
-            // Add file contents
-            Object.entries(context.files).forEach(([path, content]) => {
-                finalPrompt += `\nFile: ${path}\nContent:\n${content}\n`;
-            });
-            
-            // Add tree structure if available and enabled
-            if (treeStructure) {
-                finalPrompt += '\n[Codebase Tree]\n' + treeStructure + '\n';
-            }
-            
-            finalPrompt += '\n[End of Context]';
+    private updateContextDisplay() {
+        this.contextArea.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        const fileEntries = Object.entries(this.currentContext.files);
+        const maxVisible = 10; // Show first 10 files by default
+        let visibleFiles = fileEntries;
+        let showMoreBtn: HTMLButtonElement | null = null;
+
+        if (fileEntries.length > maxVisible) {
+            visibleFiles = fileEntries.slice(0, maxVisible);
+
+            showMoreBtn = document.createElement('button');
+            showMoreBtn.textContent = 'Show More Files';
+            showMoreBtn.style.margin = '8px 0';
+            showMoreBtn.onclick = () => {
+                // Remove old displayed files
+                this.contextArea.innerHTML = '';
+                const expandedFragment = document.createDocumentFragment();
+                fileEntries.forEach(([path, content]) => {
+                    expandedFragment.appendChild(this.createFileBlock(path, content));
+                });
+                if (this.currentContext.treeStructure) {
+                    expandedFragment.appendChild(this.createTreeBlock(this.currentContext.treeStructure));
+                }
+                this.contextArea.appendChild(expandedFragment);
+            };
         }
+
+        // Append the visible files first
+        visibleFiles.forEach(([path, content]) => {
+            fragment.appendChild(this.createFileBlock(path, content));
+        });
+
+        // If there's a tree, append it
+        if (this.currentContext.treeStructure) {
+            fragment.appendChild(this.createTreeBlock(this.currentContext.treeStructure));
+        }
+
+        if (showMoreBtn) fragment.appendChild(showMoreBtn);
+        this.contextArea.appendChild(fragment);
+    }
+
+    private createFileBlock(path: string, content: string): HTMLElement {
+        const block = document.createElement('div');
+        block.className = 'context-file';
+
+        const header = document.createElement('div');
+        header.className = 'file-header';
+        header.innerHTML = `<span class="file-icon">📄</span> ${path}`;
+        block.appendChild(header);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'file-content';
+        // Wrap code in triple backticks
+        contentDiv.textContent = `\`\`\`\n${content}\n\`\`\``;
+        block.appendChild(contentDiv);
+        return block;
+    }
+
+    private createTreeBlock(treeContent: string): HTMLElement {
+        const treeBlock = document.createElement('div');
+        treeBlock.className = 'context-tree';
         
-        return finalPrompt;
+        const header = document.createElement('div');
+        header.className = 'tree-header';
+        header.innerHTML = '<span class="tree-icon">🌳</span> Codebase Tree';
+        treeBlock.appendChild(header);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'tree-content';
+        contentDiv.textContent = treeContent;
+        treeBlock.appendChild(contentDiv);
+
+        return treeBlock;
     }
 
     private updateTokenCount() {
         try {
-            // Get the complete prompt with current context
-            const finalPrompt = this.buildFinalPrompt(this.currentContext);
-            console.log('Updating token count for prompt:', finalPrompt.slice(0, 50) + '...');
+            const fullPrompt = this.buildFinalPrompt();
+            const count = encode(fullPrompt).length;
+            this.tokenCount.textContent = `${count} tokens`;
 
-            // Count tokens using gpt-tokenizer
-            const tokens = encode(finalPrompt);
-            const tokenCount = tokens.length;
-            console.log('Token count:', tokenCount);
-
-            // Update token count display with more detail
-            this.tokenCount.textContent = `${tokenCount.toLocaleString()} tokens`;
-
-            // Remove existing classes
             this.tokenCount.classList.remove('warning', 'error');
-
-            // Add appropriate class based on token count
-            // GPT-4 limits: warning at 14k, error at 32k
-            if (tokenCount > 32000) {
+            if (count > 32000) {
                 this.tokenCount.classList.add('error');
-            } else if (tokenCount > 14000) {
+            } else if (count > 14000) {
                 this.tokenCount.classList.add('warning');
             }
         } catch (error) {
@@ -148,4 +211,4 @@ export class PromptEditor {
             this.tokenCount.classList.add('error');
         }
     }
-} 
+}

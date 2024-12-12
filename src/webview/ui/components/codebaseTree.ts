@@ -22,58 +22,52 @@ export class CodebaseTree {
         this.includeTreeToggle = document.getElementById('includeTreeToggle') as HTMLInputElement;
         this.depthControl = document.getElementById('depthControl') as HTMLElement;
         this.treeDepthInput = document.getElementById('treeDepth') as HTMLInputElement;
+
+        if (!this.includeTreeToggle || !this.depthControl || !this.treeDepthInput) {
+            throw new Error('Required DOM elements not found for CodebaseTree');
+        }
     }
 
     private setupEventListeners() {
-        this.includeTreeToggle.addEventListener('change', this.handleToggleChange.bind(this));
-        this.treeDepthInput.addEventListener('change', this.handleDepthChange.bind(this));
-    }
-
-    private handleToggleChange() {
-        this.includeTree = this.includeTreeToggle.checked;
-        this.depthControl.style.display = this.includeTree ? 'flex' : 'none';
-        if (this.includeTree) {
-            this.onTreeConfigChanged(true, this.treeDepth);
-        }
-        if (this.promptEditor) {
-            this.promptEditor.updateTokenCount();
-        }
-    }
-
-    private handleDepthChange() {
-        if (this.includeTree) {
-            this.treeDepth = parseInt(this.treeDepthInput.value, 10);
-            this.onTreeConfigChanged(true, this.treeDepth);
-            if (this.promptEditor) {
-                this.promptEditor.updateTokenCount();
+        this.includeTreeToggle.addEventListener('change', () => {
+            this.includeTree = this.includeTreeToggle.checked;
+            this.depthControl.style.display = this.includeTree ? 'flex' : 'none';
+            
+            if (this.includeTree) {
+                this.onTreeConfigChanged(true, this.treeDepth);
             }
-        }
+        });
+
+        this.treeDepthInput.addEventListener('change', () => {
+            this.treeDepth = parseInt(this.treeDepthInput.value) || 1;
+            if (this.includeTree) {
+                this.onTreeConfigChanged(true, this.treeDepth);
+            }
+        });
     }
 
     public updateTreeStructure(structure: string) {
+        console.log('Updating tree structure');
         this.treeStructure = structure;
+        
+        // If we have a promptEditor reference, trigger a context update
         if (this.promptEditor) {
-            this.promptEditor.updateTokenCount();
+            this.promptEditor.updateContext({
+                files: this.promptEditor.currentContext.files,
+                treeStructure: this.includeTree ? structure : undefined
+            });
         }
     }
 
-    public getTreeStructure(): string {
-        return this.includeTree ? this.treeStructure : '';
+    public getTreeStructure(): string | undefined {
+        return this.includeTree ? this.treeStructure : undefined;
     }
 
-    public setConfig(include: boolean, depth: number) {
-        this.includeTree = include;
-        this.treeDepth = depth;
-        this.includeTreeToggle.checked = include;
-        this.treeDepthInput.value = depth.toString();
-        this.depthControl.style.display = include ? 'flex' : 'none';
-    }
-
-    public isEnabled(): boolean {
+    public isTreeIncluded(): boolean {
         return this.includeTree;
     }
 
-    public getDepth(): number {
+    public getTreeDepth(): number {
         return this.treeDepth;
     }
 } 

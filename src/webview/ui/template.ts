@@ -23,6 +23,7 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
             <h2>File Selection</h2>
             <div class="file-picker">
                 <input type="text" id="fileSearch" placeholder="Search files by name" autocomplete="off">
+                <button id="reloadFilesBtn">Reload Files</button> <!-- ADDED -->
                 <div class="dropdown" id="fileDropdown"></div>
             </div>
             <div class="selected-files" id="selectedFiles"></div>
@@ -50,15 +51,16 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
                 <span id="tokenCount">0 tokens</span>
             </div>
             <div style="margin-top: 8px;">
-                <button id="getSelectedBtn">Get Selected Files</button>
                 <button id="copyPromptBtn">Copy Prompt</button>
             </div>
         </div>
 
         <div class="section">
-            <h2>Context</h2>
+            <h2>Preview</h2> <!-- CHANGED from Context -->
             <div id="contextArea"></div>
-        </div>
+            <!-- ADDED: Notification for copy feedback -->
+            <div id="copyNotification" style="display:none; color: var(--vscode-editorInfo-foreground); margin-top:8px;">Prompt copied!</div>
+        </div>  
 
         <div class="section">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -70,4 +72,4 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
         <script nonce="${nonce}" src="${scriptUri}"></script>
     </body>
     </html>`;
-} 
+}

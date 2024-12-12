@@ -1,10 +1,10 @@
 ## Commands
 
-/o1: o1 is the smarter AI model in the world. This command means that you’re stuck in a problem that you are trying to solve and you need the help of o1. To get help from o1 you have to answer with the context of the problem, recollect and give in a list the path of all the related files needed as context to resolve the problem. The wait for the output of o1.
-* If you need to search in the web, you can invoke by yourself the command perplexity to get help from perplexity model, a good reason to execute the perplexity command is if you don't know about a new library or new tool and their implementation
+/o1: o1 is the smarter AI model in the world. This command means that you’re stuck in a problem that you are trying to solve and you need the help of o1. To get help from o1 you have to answer with the context of the problem, recollect and give in a list the path of all the related files needed as context to resolve the problem. This in .md format. Then wait for the output of o1. 
+/perplexity: Perplexity is the best AI model to search in the web. When this command is used, prepare a query in .md format with the context needed to resolve the current problem and send to perplexity, then wait for the output of perplexity in the next message
 
 ## Skills
 Skills are the things that you can do by autonomouslyby yourself.
 
 * If you feel you're stuck, you can invoke by yourself the command o1 to get help from o1 model
-* If you need to search in the web, you can invoke by yourself the command perplexity to get help from perplexity model
+* If you need to search in the web, you can invoke by yourself the command perplexity to get help from perplexity model.

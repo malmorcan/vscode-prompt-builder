@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import ignore from 'ignore';
 
 export class PanelStateHandler {
+    private ig: ReturnType<typeof ignore> | null = null;
+
     constructor(private readonly webview: vscode.Webview) {
-        // Set up message handling
         this.webview.onDidReceiveMessage(
             message => {
                 this.handleMessage(message);
@@ -19,23 +22,33 @@ export class PanelStateHandler {
                 case 'getFileTree':
                     await this.handleGetFileTree();
                     break;
+
+                case 'expandDirectory':
+                    await this.handleExpandDirectory(message.directoryPath);
+                    break;
+
                 case 'getFileContent':
                     await this.handleGetFileContent(message.files);
                     break;
+
                 case 'getCodebaseTree':
                     await this.handleGetCodebaseTree(message.depth);
                     break;
+
                 case 'savePrompt':
                     await this.handleSavePrompt(message.name, message.prompt, message.files);
                     break;
+
                 case 'loadPrompts':
                     await this.handleLoadPrompts();
                     break;
+
                 case 'copyToClipboard':
-                    await this.handleCopyToClipboard(message.text);
+                    await vscode.env.clipboard.writeText(message.text);
                     break;
             }
         } catch (error) {
+            console.error('Error handling message:', error);
             vscode.window.showErrorMessage(`Error handling message: ${error}`);
         }
     }
@@ -47,39 +60,183 @@ export class PanelStateHandler {
                 throw new Error('No workspace folder found');
             }
 
-            const files = await vscode.workspace.findFiles('**/*.*', '**/node_modules/**');
-            const fileList = files.map(file => ({
-                name: path.basename(file.fsPath),
-                path: vscode.workspace.asRelativePath(file.fsPath)
-            }));
+            this.setupIgnoreFilter(workspaceRoot);
 
+            // Load entire workspace root
+            const tree = await this.buildFullFileTree(workspaceRoot, '');
             await this.webview.postMessage({
                 command: 'fileTree',
-                data: fileList
+                data: tree
             });
         } catch (error) {
+            console.error('Error getting file tree:', error);
             vscode.window.showErrorMessage(`Error getting file tree: ${error}`);
         }
+    }
+
+    private async handleExpandDirectory(directoryPath: string) {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+            if (!workspaceRoot) {
+                throw new Error('No workspace folder found');
+            }
+
+            // directoryPath is relative. Construct absolute path
+            const fullDirPath = path.join(workspaceRoot, directoryPath);
+
+            // Build the file list for this directory only (not recursive)
+            const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(fullDirPath));
+            const items = await this.convertEntriesToItems(entries, directoryPath, workspaceRoot);
+
+            // Send the partial expansion
+            await this.webview.postMessage({
+                command: 'expandDirectory',
+                data: {
+                    items,
+                    parentPath: directoryPath
+                }
+            });
+
+        } catch (error) {
+            console.error('Error expanding directory:', error);
+            vscode.window.showErrorMessage(`Error expanding directory: ${error}`);
+        }
+    }
+
+    private async convertEntriesToItems(entries: [string, vscode.FileType][], basePath: string, workspaceRoot: string): Promise<any[]> {
+        let items: any[] = [];
+        for (const [name, type] of entries) {
+            const itemPath = path.join(basePath, name);
+            const fullPath = path.join(workspaceRoot, itemPath);
+
+            const relativePathForIgnore = path.relative(workspaceRoot, fullPath);
+            if (this.ig && this.ig.ignores(relativePathForIgnore)) {
+                continue;
+            }
+
+            if (['node_modules', '.git', 'dist', '.vscode'].some(ignored => itemPath.includes(ignored))) {
+                continue;
+            }
+
+            const isDirectory = (type & vscode.FileType.Directory) !== 0;
+            const fileItem: any = {
+                name,
+                path: itemPath,
+                type: isDirectory ? 'directory' : 'file',
+                hasChildren: isDirectory
+            };
+
+            items.push(fileItem);
+        }
+
+        // Sort directories first, then files
+        items.sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'directory' ? -1 : 1;
+        });
+
+        return items;
+    }
+
+    private setupIgnoreFilter(workspaceRoot: string) {
+        const igInst = ignore();
+        try {
+            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+            if (fs.existsSync(gitignorePath)) {
+                const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+                igInst.add(gitignoreContent);
+            }
+        } catch (error) {
+            console.error('Error reading .gitignore:', error);
+        }
+        this.ig = igInst;
+    }
+
+    private async buildFullFileTree(dirPath: string, relativePath: string): Promise<any[]> {
+        const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(dirPath));
+        let items: any[] = [];
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
+
+        for (const [name, type] of entries) {
+            const itemPath = path.join(relativePath, name);
+            const fullPath = path.join(dirPath, name);
+            const relativePathForIgnore = path.relative(workspaceRoot, fullPath);
+
+            if (this.ig && this.ig.ignores(relativePathForIgnore)) {
+                continue;
+            }
+
+            if (['node_modules', '.git', 'dist', '.vscode'].some(ignored => itemPath.includes(ignored))) {
+                continue;
+            }
+
+            const isDirectory = (type & vscode.FileType.Directory) !== 0;
+            const fileItem: any = {
+                name,
+                path: itemPath,
+                type: isDirectory ? 'directory' : 'file',
+                hasChildren: isDirectory
+            };
+
+            if (isDirectory) {
+                fileItem.children = await this.buildFullFileTree(path.join(dirPath, name), itemPath);
+            }
+
+            items.push(fileItem);
+        }
+
+        // Sort directories first, then files
+        items.sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'directory' ? -1 : 1;
+        });
+
+        return items;
     }
 
     private async handleGetFileContent(files: string[]) {
         try {
             const contents: { [key: string]: string } = {};
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
             
+            if (!workspaceRoot) {
+                throw new Error('No workspace folder found');
+            }
+
             for (const filePath of files) {
-                const uri = vscode.Uri.file(
-                    path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, filePath)
-                );
-                const content = await vscode.workspace.fs.readFile(uri);
-                contents[filePath] = content.toString();
+                try {
+                    const fullPath = path.join(workspaceRoot, filePath);
+                    const stat = await vscode.workspace.fs.stat(vscode.Uri.file(fullPath));
+                    
+                    // Skip if it's a directory
+                    if ((stat.type & vscode.FileType.Directory) !== 0) {
+                        console.log(`Skipping directory: ${filePath}`);
+                        continue;
+                    }
+
+                    const content = await vscode.workspace.fs.readFile(vscode.Uri.file(fullPath));
+                    contents[filePath] = content.toString();
+                } catch (err) {
+                    const error = err as Error;
+                    console.error(`Error reading file ${filePath}:`, error);
+                    
+                    if (error.message.includes('EISDIR')) {
+                        console.log(`Skipping directory: ${filePath}`);
+                        continue;
+                    }
+                    
+                    contents[filePath] = `Error reading file: ${error.message}`;
+                }
             }
 
             await this.webview.postMessage({
                 command: 'fileContents',
                 data: contents
             });
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error getting file contents: ${error}`);
+        } catch (err) {
+            const error = err as Error;
+            console.error('Error getting file contents:', error);
+            vscode.window.showErrorMessage(`Error getting file contents: ${error.message}`);
         }
     }
 
@@ -128,7 +285,6 @@ export class PanelStateHandler {
 
     private async handleSavePrompt(name: string, prompt: string, files: string[]) {
         try {
-            // Get global storage path
             const storageUri = this.getStoragePath();
             const promptsFile = vscode.Uri.joinPath(storageUri, 'prompts.json');
 
@@ -202,4 +358,4 @@ export class PanelStateHandler {
     public dispose() {
         // Clean up resources if needed
     }
-} 
+}

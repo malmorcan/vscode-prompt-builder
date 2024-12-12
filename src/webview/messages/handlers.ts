@@ -33,9 +33,23 @@ export class MessageHandler {
             const message = event.data as OutgoingMessage;
             
             switch (message.command) {
-                case 'fileTree':
-                    this.fileSelector.updateFileList(message.data);
+                case 'fileTree': {
+                    const fileTreeData = {
+                        items: message.data,
+                        parentPath: ''
+                    };
+                    this.fileSelector.updateFileList(fileTreeData);
                     break;
+                }
+                    
+                case 'expandDirectory': {
+                    const directoryData = {
+                        items: message.data.items,
+                        parentPath: message.data.parentPath
+                    };
+                    this.fileSelector.updateFileList(directoryData);
+                    break;
+                }
                     
                 case 'codebaseTree':
                     this.codebaseTree.updateTreeStructure(message.data);
@@ -63,5 +77,12 @@ export class MessageHandler {
 
     public sendMessage(message: IncomingMessage) {
         this.vscode.postMessage(message);
+    }
+
+    public handleDirectoryExpansion(directoryPath: string) {
+        this.vscode.postMessage({
+            command: 'expandDirectory',
+            directoryPath
+        });
     }
 } 
