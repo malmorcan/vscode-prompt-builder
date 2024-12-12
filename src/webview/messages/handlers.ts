@@ -61,12 +61,30 @@ export class MessageHandler {
                     }
                     break;
                     
-                case 'fileContents':
+                case 'fileContents': {
+                    // Add loading indicators to files being refreshed
+                    const selectedFiles = this.fileSelector.getSelectedFiles();
+                    selectedFiles.forEach(file => {
+                        const fileElement = document.querySelector(`[data-path="${file}"]`);
+                        if (fileElement) {
+                            fileElement.classList.add('refreshing');
+                        }
+                    });
+
                     this.promptEditor.updateContext({
                         files: message.data,
                         treeStructure: this.codebaseTree.getTreeStructure()
                     });
+
+                    // Remove loading indicators
+                    selectedFiles.forEach(file => {
+                        const fileElement = document.querySelector(`[data-path="${file}"]`);
+                        if (fileElement) {
+                            fileElement.classList.remove('refreshing');
+                        }
+                    });
                     break;
+                }
                     
                 case 'promptList':
                     this.promptLibrary.updatePromptList(message.data as { [key: string]: SavedPrompt });

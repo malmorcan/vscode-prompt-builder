@@ -266,5 +266,18 @@ export function getStyles(): string {
             font-size: 13px;
             white-space: pre;
         }
+
+        .selected-file.refreshing {
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .selected-file.refreshing::after {
+            content: "Refreshing...";
+            position: absolute;
+            right: 8px;
+            font-size: 12px;
+            color: var(--vscode-textPreformat-foreground);
+        }
     `;
 } 

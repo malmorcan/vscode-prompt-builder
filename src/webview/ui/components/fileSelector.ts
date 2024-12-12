@@ -390,6 +390,9 @@ export class FileSelector {
     }
 
     public updateFileList(data: { items: FileTreeItem[], parentPath: string }) {
+        // Store current selection
+        const currentSelection = new Set(this.selectedFilePaths);
+        
         // Update the directory children
         const parentPath = data.parentPath;
         if (!this.fileList[parentPath]) {
@@ -406,6 +409,10 @@ export class FileSelector {
             this.updateDropdown(this.fileList[''] || []);
         }
 
+        // Restore selection
+        this.selectedFilePaths = currentSelection;
+        this.updateSelectedFiles();
+
         // If we were waiting on a directory load, resolve it now
         const resolver = this.loadingResolvers.get(parentPath);
         if (resolver) {
@@ -413,5 +420,10 @@ export class FileSelector {
             this.loadingResolvers.delete(parentPath);
             this.loadingPromises.delete(parentPath);
         }
+    }
+
+    // Add new method to get selected files
+    public getSelectedFiles(): string[] {
+        return Array.from(this.selectedFilePaths);
     }
 }

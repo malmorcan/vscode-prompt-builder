@@ -89,10 +89,20 @@ window.addEventListener('load', () => {
         messageHandler.sendMessage({ command: 'getFileTree' });
         messageHandler.sendMessage({ command: 'loadPrompts' });
 
-        const reloadBtn = document.getElementById('reloadFilesBtn');
-        if (reloadBtn) {
-            reloadBtn.addEventListener('click', () => {
+        const refreshBtn = document.getElementById('reloadFilesBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                // First refresh the file tree
                 vscode.postMessage({ command: 'getFileTree' });
+                
+                // Then refresh content of currently selected files
+                const selectedFiles = fileSelector.getSelectedFiles();
+                if (selectedFiles.length > 0) {
+                    vscode.postMessage({
+                        command: 'getFileContent',
+                        files: selectedFiles
+                    });
+                }
             });
         }
 
