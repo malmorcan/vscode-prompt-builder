@@ -35,6 +35,13 @@ export class CodebaseTree {
             
             if (this.includeTree) {
                 this.onTreeConfigChanged(true, this.treeDepth);
+            } else {
+                if (this.promptEditor) {
+                    this.promptEditor.updateContext({
+                        files: this.promptEditor.currentContext.files,
+                        treeStructure: undefined
+                    });
+                }
             }
         });
 

@@ -70,7 +70,6 @@ export class PromptEditor {
     }
 
     private buildFinalPrompt(): string {
-        // Follow exactly the user's requested structure
         const mainPrompt = this.promptInput.value;
         let finalPrompt = `[Prompt Start]\n\n${mainPrompt}\n\n[Context]\n\n`;
 
@@ -80,16 +79,10 @@ export class PromptEditor {
             finalPrompt += `- File: ${filePath}\n  Content:\n${content}\n\n`;
         }
 
-        // Add codebase tree if available
+        // Add codebase tree only if it exists and is enabled
         const includeTreeToggle = document.getElementById('includeTreeToggle') as HTMLInputElement;
-        if (includeTreeToggle?.checked && this.codebaseTree) {
-            const treeStructure = this.codebaseTree.getTreeStructure();
-            if (treeStructure && treeStructure.trim()) {
-                // Add tree as requested:
-                // - Codebase Tree:
-                //   <tree content>
-                finalPrompt += `- Codebase Tree:\n${treeStructure}\n\n`;
-            }
+        if (includeTreeToggle?.checked && this.currentContext.treeStructure) {
+            finalPrompt += `- Codebase Tree:\n${this.currentContext.treeStructure}\n\n`;
         }
 
         finalPrompt += `[End of Context]\n`;
@@ -107,11 +100,10 @@ export class PromptEditor {
     }
 
     public updateContext(context: PromptContext) {
-        // Clear out old files that aren't in the new context
-        const newFiles = context.files || {};
+        // Preserve existing files but update tree structure
         this.currentContext = {
-            files: newFiles, // Replace entire files object instead of merging
-            treeStructure: context.treeStructure
+            files: context.files || this.currentContext.files,
+            treeStructure: context.treeStructure // Can be undefined when tree is toggled off
         };
         
         this.updateContextDisplay();
@@ -212,5 +204,9 @@ export class PromptEditor {
             this.tokenCount.textContent = 'Error counting tokens';
             this.tokenCount.classList.add('error');
         }
+    }
+
+    public getCurrentContext(): PromptContext {
+        return this.currentContext;
     }
 }

@@ -53,6 +53,12 @@ export class MessageHandler {
                     
                 case 'codebaseTree':
                     this.codebaseTree.updateTreeStructure(message.data);
+                    if ((document.getElementById('includeTreeToggle') as HTMLInputElement)?.checked) {
+                        this.promptEditor.updateContext({
+                            files: this.promptEditor.getCurrentContext().files,
+                            treeStructure: message.data
+                        });
+                    }
                     break;
                     
                 case 'fileContents':
