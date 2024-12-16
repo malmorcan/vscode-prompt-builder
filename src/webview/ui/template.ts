@@ -14,12 +14,6 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
     </head>
     <body>
         <div class="section">
-            <h2>Prompt Library</h2>
-            <button id="loadPromptsBtn">Load Prompts</button>
-            <ul id="promptList"></ul>
-        </div>
-
-        <div class="section">
             <h2>File Selection</h2>
             <div class="file-picker">
                 <input type="text" id="fileSearch" placeholder="Search files by name" autocomplete="off">
@@ -56,20 +50,13 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
         </div>
 
         <div class="section">
-            <h2>Preview</h2> <!-- CHANGED from Context -->
+            <h2>Preview</h2>
             <div id="contextArea"></div>
-            <!-- ADDED: Notification for copy feedback -->
             <div id="copyNotification" style="display:none; color: var(--vscode-editorInfo-foreground); margin-top:8px;">Prompt copied!</div>
-        </div>  
-
-        <div class="section">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button id="savePromptBtn">Save Current Prompt</button>
-                <input type="text" id="promptNameInput" placeholder="Prompt name">
-            </div>
         </div>
 
         <script nonce="${nonce}" src="${scriptUri}"></script>
     </body>
     </html>`;
 }
+

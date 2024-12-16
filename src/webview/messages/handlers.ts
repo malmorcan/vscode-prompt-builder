@@ -3,27 +3,23 @@ import { IncomingMessage, OutgoingMessage } from "./types";
 import { FileSelector } from "../ui/components/fileSelector";
 import { CodebaseTree } from "../ui/components/codebaseTree";
 import { PromptEditor } from "../ui/components/promptEditor";
-import { PromptLibrary, SavedPrompt } from "../ui/components/promptLibrary";
 
 export class MessageHandler {
     private vscode: Webview;
     private fileSelector: FileSelector;
     private codebaseTree: CodebaseTree;
     private promptEditor: PromptEditor;
-    private promptLibrary: PromptLibrary;
 
     constructor(
         vscode: Webview,
         fileSelector: FileSelector,
         codebaseTree: CodebaseTree,
         promptEditor: PromptEditor,
-        promptLibrary: PromptLibrary
     ) {
         this.vscode = vscode;
         this.fileSelector = fileSelector;
         this.codebaseTree = codebaseTree;
         this.promptEditor = promptEditor;
-        this.promptLibrary = promptLibrary;
 
         this.setupMessageListener();
     }
@@ -85,16 +81,6 @@ export class MessageHandler {
                     });
                     break;
                 }
-                    
-                case 'promptList':
-                    this.promptLibrary.updatePromptList(message.data as { [key: string]: SavedPrompt });
-                    break;
-                    
-                case 'promptSaved':
-                    if (message.data) {
-                        // Could show a success message
-                    }
-                    break;
             }
         });
     }

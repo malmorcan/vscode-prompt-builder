@@ -1,11 +1,9 @@
 // Initialize VSCode API
 declare function acquireVsCodeApi(): any;
 
-import { PanelState } from './state/panelState';
 import { FileSelector } from './ui/components/fileSelector';
 import { CodebaseTree } from './ui/components/codebaseTree';
 import { PromptEditor } from './ui/components/promptEditor';
-import { PromptLibrary } from './ui/components/promptLibrary';
 import { MessageHandler } from './messages/handlers';
 
 window.addEventListener('load', () => {
@@ -68,21 +66,12 @@ window.addEventListener('load', () => {
 
         codebaseTree['promptEditor'] = promptEditor;
 
-        const promptLibrary = new PromptLibrary({
-            onLoad: () => console.log('Loading prompts...'),
-            onSave: (name, prompt, files, depth) => console.log('Saving prompt:', name),
-            onPromptSelected: (prompt) => console.log('Prompt selected:', prompt)
-        });
-
         const messageHandler = new MessageHandler(
             vscode,
             fileSelector,
             codebaseTree,
             promptEditor,
-            promptLibrary
         );
-
-        const panelState = new PanelState(vscode);
 
         console.log('Components initialized successfully');
 

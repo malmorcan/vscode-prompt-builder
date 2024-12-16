@@ -22,30 +22,19 @@ export class PanelStateHandler {
                 case 'getFileTree':
                     await this.handleGetFileTree();
                     break;
-
                 case 'expandDirectory':
                     await this.handleExpandDirectory(message.directoryPath);
                     break;
-
                 case 'getFileContent':
                     await this.handleGetFileContent(message.files);
                     break;
-
                 case 'getCodebaseTree':
                     await this.handleGetCodebaseTree(message.depth);
                     break;
-
-                case 'savePrompt':
-                    await this.handleSavePrompt(message.name, message.prompt, message.files);
-                    break;
-
-                case 'loadPrompts':
-                    await this.handleLoadPrompts();
-                    break;
-
                 case 'copyToClipboard':
                     await vscode.env.clipboard.writeText(message.text);
                     break;
+                // Removed 'savePrompt' and 'loadPrompts' commands entirely
             }
         } catch (error) {
             console.error('Error handling message:', error);
@@ -281,78 +270,6 @@ export class PanelStateHandler {
         }
 
         return result;
-    }
-
-    private async handleSavePrompt(name: string, prompt: string, files: string[]) {
-        try {
-            const storageUri = this.getStoragePath();
-            const promptsFile = vscode.Uri.joinPath(storageUri, 'prompts.json');
-
-            // Read existing prompts
-            let prompts: { [key: string]: any } = {};
-            try {
-                const content = await vscode.workspace.fs.readFile(promptsFile);
-                prompts = JSON.parse(content.toString());
-            } catch (error) {
-                // File doesn't exist yet, that's ok
-            }
-
-            // Save new prompt
-            prompts[name] = { prompt, files };
-            await vscode.workspace.fs.writeFile(
-                promptsFile,
-                Buffer.from(JSON.stringify(prompts, null, 2))
-            );
-
-            await this.webview.postMessage({
-                command: 'promptSaved',
-                data: true
-            });
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error saving prompt: ${error}`);
-        }
-    }
-
-    private async handleLoadPrompts() {
-        try {
-            const storageUri = this.getStoragePath();
-            const promptsFile = vscode.Uri.joinPath(storageUri, 'prompts.json');
-
-            try {
-                const content = await vscode.workspace.fs.readFile(promptsFile);
-                const prompts = JSON.parse(content.toString());
-
-                await this.webview.postMessage({
-                    command: 'promptList',
-                    data: prompts
-                });
-            } catch (error) {
-                // File doesn't exist yet, send empty list
-                await this.webview.postMessage({
-                    command: 'promptList',
-                    data: {}
-                });
-            }
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error loading prompts: ${error}`);
-        }
-    }
-
-    private async handleCopyToClipboard(text: string) {
-        try {
-            await vscode.env.clipboard.writeText(text);
-            vscode.window.showInformationMessage('Copied to clipboard!');
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error copying to clipboard: ${error}`);
-        }
-    }
-
-    private getStoragePath(): vscode.Uri {
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri;
-        if (!workspaceRoot) {
-            throw new Error('No workspace folder found');
-        }
-        return vscode.Uri.joinPath(workspaceRoot, '.vscode');
     }
 
     public dispose() {
