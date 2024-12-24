@@ -17,7 +17,7 @@ Install this extension from the [Visual Studio Code Marketplace](marketplace-lin
 
 ## Usage
 1. Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac)
-2. Run `Prompt Builder: Open Prompt Panel`
+2. Run `Prompt Builder: Open Prompt Panel` or only `One Prompt Panel`
 3. Search and select files from your codebase to add to context
 4. Toggle codebase tree inclusion and adjust depth
 5. Write or modify your prompt in the Prompt Editor
