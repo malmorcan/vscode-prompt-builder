@@ -422,6 +422,13 @@ export class FileSelector {
         }
     }
 
+    public clearAllSelectedFiles() {
+    this.selectedFilePaths.clear();
+    this.updateSelectedFiles();
+    this.onFilesChanged(Array.from(this.selectedFilePaths));
+    this.saveState();
+    }
+
     // Add new method to get selected files
     public getSelectedFiles(): string[] {
         return Array.from(this.selectedFilePaths);

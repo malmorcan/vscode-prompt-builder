@@ -95,6 +95,13 @@ window.addEventListener('load', () => {
             });
         }
 
+        const clearBtn = document.getElementById('clearFilesBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                fileSelector.clearAllSelectedFiles();
+            });
+        }
+
     } catch (error) {
         console.error('Failed to initialize webview:', error);
     }

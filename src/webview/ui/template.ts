@@ -18,6 +18,7 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
             <div class="file-picker">
                 <input type="text" id="fileSearch" placeholder="Search files by name" autocomplete="off">
                 <button id="reloadFilesBtn">Refresh Files</button>
+                <button id="clearFilesBtn">Clear all files</button>
                 <div class="dropdown" id="fileDropdown"></div>
             </div>
             <div class="selected-files" id="selectedFiles"></div>
