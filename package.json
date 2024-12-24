@@ -2,7 +2,7 @@
   "name": "vscode-prompt-builder",
   "displayName": "LLM Prompt Builder",
   "description": "Easily build prompts with atached files or dirs as code context and preview them directly in VSCode",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "fcxmarquez",
   "keywords": [
     "prompt",
