@@ -1,8 +1,8 @@
 {
   "name": "vscode-prompt-builder",
-  "displayName": "Prompt Builder",
-  "description": "A VSCode extension for managing prompts",
-  "version": "0.0.1",
+  "displayName": "Prompt Context Builder",
+  "description": "Easily build prompts with atached files or dirs as code context and preview them directly in VSCode",
+  "version": "1.0.0",
   "publisher": "fcxmarquez",
   "engines": {
     "vscode": "^1.85.0"
