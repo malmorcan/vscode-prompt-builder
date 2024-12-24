@@ -1,14 +1,27 @@
 {
   "name": "vscode-prompt-builder",
-  "displayName": "Prompt Context Builder",
+  "displayName": "LLM Prompt Builder",
   "description": "Easily build prompts with atached files or dirs as code context and preview them directly in VSCode",
-  "version": "1.0.0",
+  "version": "0.0.4",
   "publisher": "fcxmarquez",
+  "keywords": [
+    "prompt",
+    "prompt engineering",
+    "AI",
+    "codebase context",
+    "LLM",
+    "developer tools",
+    "context builder",
+    "files selection",
+    "prompt builder"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "AI",
+    "Snippets"
   ],
   "activationEvents": [
     "onCommand:myPromptExtension.openPromptPanel"
