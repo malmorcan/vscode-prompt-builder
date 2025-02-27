@@ -55,6 +55,28 @@ export class FileSelector {
         headerDiv.style.padding = '4px';
         headerDiv.style.borderBottom = '1px solid var(--vscode-dropdown-border)';
 
+        // Add expand/collapse toggle button
+        const toggleExpandButton = document.createElement('button');
+        toggleExpandButton.id = 'toggleExpandBtn';
+        toggleExpandButton.textContent = '📂 Collapse All';
+        toggleExpandButton.style.fontSize = '12px';
+        toggleExpandButton.style.padding = '2px 6px';
+        toggleExpandButton.style.marginRight = '5px';
+        
+        // By default, everything is expanded, so button starts in "Collapse All" mode
+        let allExpanded = true;
+        
+        toggleExpandButton.onclick = () => {
+            if (allExpanded) {
+                this.collapseAllDirectories();
+                toggleExpandButton.textContent = '📁 Expand All';
+            } else {
+                this.expandAllDirectories();
+                toggleExpandButton.textContent = '📂 Collapse All';
+            }
+            allExpanded = !allExpanded;
+        };
+
         const closeButton = document.createElement('button');
         closeButton.textContent = 'X';
         closeButton.style.fontSize = '12px';
@@ -70,8 +92,13 @@ export class FileSelector {
         loaderSpan.style.color = 'var(--vscode-foreground)';
         loaderSpan.textContent = 'Loading...';
 
+        const buttonGroup = document.createElement('div');
+        buttonGroup.style.display = 'flex';
+        buttonGroup.appendChild(toggleExpandButton);
+        buttonGroup.appendChild(closeButton);
+
         headerDiv.appendChild(loaderSpan);
-        headerDiv.appendChild(closeButton);
+        headerDiv.appendChild(buttonGroup);
         this.fileDropdown.appendChild(headerDiv);
     }
 
@@ -586,5 +613,43 @@ export class FileSelector {
         // Update the dropdown with the root level files
         this.updateDropdown(files);
         this.showDropdown();
+    }
+
+    // Add methods to expand and collapse all directories
+    private expandAllDirectories() {
+        // Pre-populate the expanded directories set with all directory paths
+        const populateExpanded = (items: FileTreeItem[]) => {
+            for (const item of items) {
+                if (item.type === 'directory') {
+                    this.expandedDirectories.add(item.path);
+                    if (item.children) {
+                        populateExpanded(item.children);
+                    }
+                }
+            }
+        };
+        
+        populateExpanded(this.fileList[''] || []);
+        
+        // Refresh the current view
+        if (this.lastQuery) {
+            this.lastResults = this.filterFiles(this.lastQuery);
+            this.updateDropdown(this.lastResults);
+        } else {
+            this.updateDropdown(this.fileList[''] || []);
+        }
+    }
+
+    private collapseAllDirectories() {
+        // Clear all expanded directories except the root
+        this.expandedDirectories.clear();
+        
+        // Refresh the current view
+        if (this.lastQuery) {
+            this.lastResults = this.filterFiles(this.lastQuery);
+            this.updateDropdown(this.lastResults);
+        } else {
+            this.updateDropdown(this.fileList[''] || []);
+        }
     }
 }
