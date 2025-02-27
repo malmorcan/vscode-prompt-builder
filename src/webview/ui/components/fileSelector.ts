@@ -146,6 +146,18 @@ export class FileSelector {
         items.forEach(item => {
             const div = this.createFileListItem(item);
             fragment.appendChild(div);
+            
+            // If directory is expanded, also add its children
+            if (item.type === 'directory' && 
+                this.expandedDirectories.has(item.path) && 
+                this.fileList[item.path]) {
+                
+                const childrenFragment = this.createChildrenElements(
+                    this.fileList[item.path], 
+                    item.path
+                );
+                fragment.appendChild(childrenFragment);
+            }
         });
         
         this.fileDropdown.appendChild(fragment);
@@ -157,14 +169,42 @@ export class FileSelector {
         }
     }
 
+    private createChildrenElements(items: FileTreeItem[], parentPath: string): DocumentFragment {
+        const fragment = document.createDocumentFragment();
+        
+        items.forEach(item => {
+            // Ensure each item correctly knows its position in the hierarchy
+            const div = this.createFileListItem(item);
+            fragment.appendChild(div);
+            
+            // Recursively add children of expanded directories
+            if (item.type === 'directory' && 
+                this.expandedDirectories.has(item.path) && 
+                this.fileList[item.path]) {
+                
+                const childrenFragment = this.createChildrenElements(
+                    this.fileList[item.path], 
+                    item.path
+                );
+                fragment.appendChild(childrenFragment);
+            }
+        });
+        
+        return fragment;
+    }
+
     private createFileListItem(item: FileTreeItem): HTMLElement {
         const div = document.createElement('div');
         div.className = 'dropdown-item';
         div.dataset.path = item.path;
         div.dataset.type = item.type;
 
-        const depth = item.path.split('/').length - 1;
-        div.style.paddingLeft = `${(depth + 1) * 20}px`; // Indent items more clearly
+        // Fix depth calculation by handling both '/' and '\' path separators
+        const pathParts = item.path.split(/[/\\]/);
+        const depth = pathParts.length - (pathParts[0] === '' ? 0 : 1);
+        
+        // Apply indentation based on depth
+        div.style.paddingLeft = `${(depth + 1) * 16}px`; // Slightly reduced indent for more items
 
         const icon = document.createElement('span');
         icon.className = 'item-icon';
@@ -180,7 +220,9 @@ export class FileSelector {
         // Add tooltip indicating action
         div.title = item.type === 'directory' ? 'Click to expand directory' : 'Click to select file';
 
+        // Remaining code for directory/file click handlers...
         if (item.type === 'directory') {
+            // Directory click handlers...
             div.onclick = async (e) => {
                 e.stopPropagation();
                 await this.handleDirectoryClick(item);
@@ -522,10 +564,27 @@ export class FileSelector {
 
     // Add a method to load the initial file tree with all directories expanded
     public loadInitialFileTree(files: FileTreeItem[]) {
-        // Set the expandAll parameter to true to show all directories expanded by default
-        this.renderFileTree(files);
+        // Store the full file tree in the root level
+        this.fileList[''] = files;
         
-        // Show the dropdown
-        this.fileDropdown.style.display = 'block';
+        // Pre-populate the expanded directories set with all directory paths
+        const populateExpanded = (items: FileTreeItem[], parentPath: string = '') => {
+            for (const item of items) {
+                if (item.type === 'directory') {
+                    this.expandedDirectories.add(item.path);
+                    // Also create an entry in the fileList for this directory
+                    if (item.children) {
+                        this.fileList[item.path] = item.children;
+                        populateExpanded(item.children, item.path);
+                    }
+                }
+            }
+        };
+        
+        populateExpanded(files);
+        
+        // Update the dropdown with the root level files
+        this.updateDropdown(files);
+        this.showDropdown();
     }
 }
