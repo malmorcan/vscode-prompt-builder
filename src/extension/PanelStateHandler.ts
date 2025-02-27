@@ -3,6 +3,15 @@ import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
 
+// Define the FileTreeItem interface
+interface FileTreeItem {
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    hasChildren?: boolean;
+    children?: FileTreeItem[];
+}
+
 export class PanelStateHandler {
     private ig: ReturnType<typeof ignore> | null = null;
 
@@ -33,6 +42,9 @@ export class PanelStateHandler {
                     break;
                 case 'copyToClipboard':
                     await vscode.env.clipboard.writeText(message.text);
+                    break;
+                case 'getIgnoreInfo':
+                    await this.handleGetIgnoreInfo();
                     break;
                 // Removed 'savePrompt' and 'loadPrompts' commands entirely
             }
@@ -132,57 +144,80 @@ export class PanelStateHandler {
     private setupIgnoreFilter(workspaceRoot: string) {
         const igInst = ignore();
         try {
-            const gitignorePath = path.join(workspaceRoot, '.promptignore');
-            if (fs.existsSync(gitignorePath)) {
-                const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-                igInst.add(gitignoreContent);
+            // First try .promptignore (takes precedence)
+            const promptignorePath = path.join(workspaceRoot, '.promptignore');
+            if (fs.existsSync(promptignorePath)) {
+                const promptignoreContent = fs.readFileSync(promptignorePath, 'utf8');
+                igInst.add(promptignoreContent);
+                console.log('Using .promptignore for file filtering');
+            } 
+            // Fall back to .gitignore if .promptignore doesn't exist
+            else {
+                const gitignorePath = path.join(workspaceRoot, '.gitignore');
+                if (fs.existsSync(gitignorePath)) {
+                    const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+                    igInst.add(gitignoreContent);
+                    console.log('Using .gitignore for file filtering (no .promptignore found)');
+                }
             }
+
+            // Always add common exclusions regardless of .promptignore or .gitignore
+            igInst.add([
+                'node_modules',
+                '.git',
+                'dist',
+                'out',
+                'build',
+                '.vscode',
+                '.idea',
+                '*.log'
+            ]);
         } catch (error) {
-            console.error('Error reading .gitignore:', error);
+            console.error('Error reading ignore file:', error);
         }
         this.ig = igInst;
     }
 
-    private async buildFullFileTree(dirPath: string, relativePath: string): Promise<any[]> {
-        const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(dirPath));
-        let items: any[] = [];
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath || '';
-
-        for (const [name, type] of entries) {
-            const itemPath = path.join(relativePath, name);
-            const fullPath = path.join(dirPath, name);
-            const relativePathForIgnore = path.relative(workspaceRoot, fullPath);
-
-            if (this.ig && this.ig.ignores(relativePathForIgnore)) {
-                continue;
+    private async buildFullFileTree(dirPath: string, relativePath: string): Promise<FileTreeItem[]> {
+        try {
+            const result: FileTreeItem[] = [];
+            const files = await fs.promises.readdir(dirPath);
+            
+            for (const file of files) {
+                const fullPath = path.join(dirPath, file);
+                // Use relative path from workspace root for ignore checking
+                const itemRelPath = path.join(relativePath, file).replace(/\\/g, '/');
+                
+                // Skip if this path should be ignored
+                if (this.ig && this.ig.ignores(itemRelPath)) {
+                    continue;
+                }
+                
+                const stats = await fs.promises.stat(fullPath);
+                
+                if (stats.isDirectory()) {
+                    const children = await this.buildFullFileTree(fullPath, itemRelPath);
+                    result.push({
+                        name: file,
+                        path: itemRelPath,
+                        type: 'directory',
+                        hasChildren: children.length > 0,
+                        children: children
+                    });
+                } else {
+                    result.push({
+                        name: file,
+                        path: itemRelPath,
+                        type: 'file'
+                    });
+                }
             }
-
-            if (['node_modules', '.git', 'dist', '.vscode'].some(ignored => itemPath.includes(ignored))) {
-                continue;
-            }
-
-            const isDirectory = (type & vscode.FileType.Directory) !== 0;
-            const fileItem: any = {
-                name,
-                path: itemPath,
-                type: isDirectory ? 'directory' : 'file',
-                hasChildren: isDirectory
-            };
-
-            if (isDirectory) {
-                fileItem.children = await this.buildFullFileTree(path.join(dirPath, name), itemPath);
-            }
-
-            items.push(fileItem);
+            
+            return result;
+        } catch (error) {
+            console.error(`Error building file tree for ${dirPath}:`, error);
+            return [];
         }
-
-        // Sort directories first, then files
-        items.sort((a, b) => {
-            if (a.type === b.type) return a.name.localeCompare(b.name);
-            return a.type === 'directory' ? -1 : 1;
-        });
-
-        return items;
     }
 
     private async handleGetFileContent(files: string[]) {
@@ -272,6 +307,31 @@ export class PanelStateHandler {
         }
 
         return result;
+    }
+
+    private async handleGetIgnoreInfo() {
+        try {
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+            if (!workspaceRoot) {
+                throw new Error('No workspace folder found');
+            }
+
+            const promptignorePath = path.join(workspaceRoot, '.promptignore');
+            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+            
+            let message = '';
+            if (fs.existsSync(promptignorePath)) {
+                message = 'Using .promptignore for file filtering';
+            } else if (fs.existsSync(gitignorePath)) {
+                message = 'Using .gitignore for file filtering (no .promptignore found)';
+            } else {
+                message = 'No .promptignore or .gitignore found, using default exclusions only';
+            }
+
+            vscode.window.showInformationMessage(message);
+        } catch (error) {
+            console.error('Error getting ignore info:', error);
+        }
     }
 
     public dispose() {

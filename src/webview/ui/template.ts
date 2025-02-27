@@ -19,6 +19,7 @@ export function getWebviewContent(nonce: string, scriptUri: string): string {
                 <input type="text" id="fileSearch" placeholder="Search files by name" autocomplete="off">
                 <button id="reloadFilesBtn">Refresh Files</button>
                 <button id="clearFilesBtn">Clear all files</button>
+                <button id="showIgnoreInfoBtn" title="Shows which ignore file is being used">Ignore Info</button>
                 <div class="dropdown" id="fileDropdown"></div>
             </div>
             <div class="selected-files" id="selectedFiles"></div>
