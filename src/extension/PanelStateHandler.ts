@@ -51,7 +51,7 @@ export class PanelStateHandler {
 
             this.setupIgnoreFilter(workspaceRoot);
 
-            // Load entire workspace root
+            // Load entire workspace hierarchically with all files expanded
             const tree = await this.buildFullFileTree(workspaceRoot, '');
             await this.webview.postMessage({
                 command: 'fileTree',
@@ -130,7 +130,7 @@ export class PanelStateHandler {
     private setupIgnoreFilter(workspaceRoot: string) {
         const igInst = ignore();
         try {
-            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+            const gitignorePath = path.join(workspaceRoot, '.promptignore');
             if (fs.existsSync(gitignorePath)) {
                 const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
                 igInst.add(gitignoreContent);

@@ -433,4 +433,99 @@ export class FileSelector {
     public getSelectedFiles(): string[] {
         return Array.from(this.selectedFilePaths);
     }
+
+    private renderFileTree(files: any[]) {
+        const dropdown = document.getElementById('fileDropdown');
+        if (!dropdown) return;
+        
+        dropdown.innerHTML = '';
+        
+        // Render each file in the tree with all directories expanded
+        files.forEach(file => {
+            this.renderFileItem(file, dropdown, 0, true); // Set the last parameter to true to expand all
+        });
+    }
+
+    private renderFileItem(file: any, container: HTMLElement, level: number, expandAll: boolean = false) {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.style.paddingLeft = `${level * 20}px`;
+        
+        // Create the file item content
+        const content = document.createElement('div');
+        content.className = 'file-content';
+        
+        if (file.type === 'directory') {
+            // For directories, add expand/collapse functionality
+            const icon = document.createElement('span');
+            icon.className = expandAll ? 'folder-icon expanded' : 'folder-icon';
+            icon.innerText = expandAll ? '📂' : '📁';
+            content.appendChild(icon);
+            
+            const name = document.createElement('span');
+            name.className = 'file-name';
+            name.innerText = file.name;
+            content.appendChild(name);
+            
+            item.appendChild(content);
+            container.appendChild(item);
+            
+            // Create a container for children
+            const childContainer = document.createElement('div');
+            childContainer.className = 'file-children';
+            childContainer.style.display = expandAll ? 'block' : 'none';
+            
+            // Recursively render children if they exist
+            if (file.children && file.children.length > 0) {
+                file.children.forEach((child: any) => {
+                    this.renderFileItem(child, childContainer, level + 1, expandAll);
+                });
+            }
+            
+            // Add click handler to toggle visibility
+            content.addEventListener('click', () => {
+                // Toggle expanded state
+                const isExpanded = icon.classList.contains('expanded');
+                icon.classList.toggle('expanded');
+                icon.innerText = isExpanded ? '📁' : '📂';
+                childContainer.style.display = isExpanded ? 'none' : 'block';
+            });
+            
+            container.appendChild(childContainer);
+        } else {
+            // For files, add selection functionality
+            const icon = document.createElement('span');
+            icon.className = 'file-icon';
+            icon.innerText = '📄';
+            content.appendChild(icon);
+            
+            const name = document.createElement('span');
+            name.className = 'file-name';
+            name.innerText = file.name;
+            content.appendChild(name);
+            
+            // Add click handler to select file
+            item.addEventListener('click', () => {
+                // Use selectFile method instead of toggleFileSelection
+                this.selectFile(file.path);
+            });
+            
+            // Mark as selected if it's in the selectedFilePaths
+            if (this.selectedFilePaths.has(file.path)) {
+                item.classList.add('selected');
+            }
+            
+            item.appendChild(content);
+            container.appendChild(item);
+        }
+    }
+
+    // Add a method to load the initial file tree with all directories expanded
+    public loadInitialFileTree(files: FileTreeItem[]) {
+        // Set the expandAll parameter to true to show all directories expanded by default
+        this.renderFileTree(files);
+        
+        // Show the dropdown
+        this.fileDropdown.style.display = 'block';
+    }
 }

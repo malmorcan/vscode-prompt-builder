@@ -71,12 +71,12 @@ export class PromptEditor {
 
     private buildFinalPrompt(): string {
         const mainPrompt = this.promptInput.value;
-        let finalPrompt = `[Prompt Start]\n\n${mainPrompt}\n\n[Context]\n\n`;
+        let finalPrompt = `\n${mainPrompt}\n\n## Related files\n\n`;
 
         // Add selected files
         const fileEntries = Object.entries(this.currentContext.files);
         for (const [filePath, content] of fileEntries) {
-            finalPrompt += `- File: ${filePath}\n  Content:\n${content}\n\n`;
+            finalPrompt += `${filePath}:\n\`\`\`\n${content}\n\`\`\`\n\n`;
         }
 
         // Add codebase tree only if it exists and is enabled
@@ -85,7 +85,7 @@ export class PromptEditor {
             finalPrompt += `- Codebase Tree:\n${this.currentContext.treeStructure}\n\n`;
         }
 
-        finalPrompt += `[End of Context]\n`;
+        finalPrompt += `\n`;
 
         return finalPrompt;
     }
