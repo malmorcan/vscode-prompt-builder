@@ -30,11 +30,9 @@ export class MessageHandler {
             
             switch (message.command) {
                 case 'fileTree': {
-                    const fileTreeData = {
-                        items: message.data,
-                        parentPath: ''
-                    };
-                    this.fileSelector.updateFileList(fileTreeData);
+                    console.log('Received file tree');
+                    // Update the file selector to show the full tree
+                    this.fileSelector.loadInitialFileTree(message.data);
                     break;
                 }
                     
@@ -95,4 +93,4 @@ export class MessageHandler {
             directoryPath
         });
     }
-} 
+}
