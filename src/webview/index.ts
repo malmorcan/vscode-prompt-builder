@@ -102,6 +102,13 @@ window.addEventListener('load', () => {
             });
         }
 
+        const showIgnoreInfoBtn = document.getElementById('showIgnoreInfoBtn');
+        if (showIgnoreInfoBtn) {
+            showIgnoreInfoBtn.addEventListener('click', () => {
+                vscode.postMessage({ command: 'getIgnoreInfo' });
+            });
+        }
+
     } catch (error) {
         console.error('Failed to initialize webview:', error);
     }

@@ -55,6 +55,28 @@ export class FileSelector {
         headerDiv.style.padding = '4px';
         headerDiv.style.borderBottom = '1px solid var(--vscode-dropdown-border)';
 
+        // Add expand/collapse toggle button
+        const toggleExpandButton = document.createElement('button');
+        toggleExpandButton.id = 'toggleExpandBtn';
+        toggleExpandButton.textContent = '📂 Collapse All';
+        toggleExpandButton.style.fontSize = '12px';
+        toggleExpandButton.style.padding = '2px 6px';
+        toggleExpandButton.style.marginRight = '5px';
+        
+        // By default, everything is expanded, so button starts in "Collapse All" mode
+        let allExpanded = true;
+        
+        toggleExpandButton.onclick = () => {
+            if (allExpanded) {
+                this.collapseAllDirectories();
+                toggleExpandButton.textContent = '📁 Expand All';
+            } else {
+                this.expandAllDirectories();
+                toggleExpandButton.textContent = '📂 Collapse All';
+            }
+            allExpanded = !allExpanded;
+        };
+
         const closeButton = document.createElement('button');
         closeButton.textContent = 'X';
         closeButton.style.fontSize = '12px';
@@ -70,8 +92,13 @@ export class FileSelector {
         loaderSpan.style.color = 'var(--vscode-foreground)';
         loaderSpan.textContent = 'Loading...';
 
+        const buttonGroup = document.createElement('div');
+        buttonGroup.style.display = 'flex';
+        buttonGroup.appendChild(toggleExpandButton);
+        buttonGroup.appendChild(closeButton);
+
         headerDiv.appendChild(loaderSpan);
-        headerDiv.appendChild(closeButton);
+        headerDiv.appendChild(buttonGroup);
         this.fileDropdown.appendChild(headerDiv);
     }
 
@@ -146,6 +173,18 @@ export class FileSelector {
         items.forEach(item => {
             const div = this.createFileListItem(item);
             fragment.appendChild(div);
+            
+            // If directory is expanded, also add its children
+            if (item.type === 'directory' && 
+                this.expandedDirectories.has(item.path) && 
+                this.fileList[item.path]) {
+                
+                const childrenFragment = this.createChildrenElements(
+                    this.fileList[item.path], 
+                    item.path
+                );
+                fragment.appendChild(childrenFragment);
+            }
         });
         
         this.fileDropdown.appendChild(fragment);
@@ -157,14 +196,42 @@ export class FileSelector {
         }
     }
 
+    private createChildrenElements(items: FileTreeItem[], parentPath: string): DocumentFragment {
+        const fragment = document.createDocumentFragment();
+        
+        items.forEach(item => {
+            // Ensure each item correctly knows its position in the hierarchy
+            const div = this.createFileListItem(item);
+            fragment.appendChild(div);
+            
+            // Recursively add children of expanded directories
+            if (item.type === 'directory' && 
+                this.expandedDirectories.has(item.path) && 
+                this.fileList[item.path]) {
+                
+                const childrenFragment = this.createChildrenElements(
+                    this.fileList[item.path], 
+                    item.path
+                );
+                fragment.appendChild(childrenFragment);
+            }
+        });
+        
+        return fragment;
+    }
+
     private createFileListItem(item: FileTreeItem): HTMLElement {
         const div = document.createElement('div');
         div.className = 'dropdown-item';
         div.dataset.path = item.path;
         div.dataset.type = item.type;
 
-        const depth = item.path.split('/').length - 1;
-        div.style.paddingLeft = `${(depth + 1) * 20}px`; // Indent items more clearly
+        // Fix depth calculation by handling both '/' and '\' path separators
+        const pathParts = item.path.split(/[/\\]/);
+        const depth = pathParts.length - (pathParts[0] === '' ? 0 : 1);
+        
+        // Apply indentation based on depth
+        div.style.paddingLeft = `${(depth + 1) * 16}px`; // Slightly reduced indent for more items
 
         const icon = document.createElement('span');
         icon.className = 'item-icon';
@@ -180,7 +247,9 @@ export class FileSelector {
         // Add tooltip indicating action
         div.title = item.type === 'directory' ? 'Click to expand directory' : 'Click to select file';
 
+        // Remaining code for directory/file click handlers...
         if (item.type === 'directory') {
+            // Directory click handlers...
             div.onclick = async (e) => {
                 e.stopPropagation();
                 await this.handleDirectoryClick(item);
@@ -432,5 +501,155 @@ export class FileSelector {
     // Add new method to get selected files
     public getSelectedFiles(): string[] {
         return Array.from(this.selectedFilePaths);
+    }
+
+    private renderFileTree(files: any[]) {
+        const dropdown = document.getElementById('fileDropdown');
+        if (!dropdown) return;
+        
+        dropdown.innerHTML = '';
+        
+        // Render each file in the tree with all directories expanded
+        files.forEach(file => {
+            this.renderFileItem(file, dropdown, 0, true); // Set the last parameter to true to expand all
+        });
+    }
+
+    private renderFileItem(file: any, container: HTMLElement, level: number, expandAll: boolean = false) {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.style.paddingLeft = `${level * 20}px`;
+        
+        // Create the file item content
+        const content = document.createElement('div');
+        content.className = 'file-content';
+        
+        if (file.type === 'directory') {
+            // For directories, add expand/collapse functionality
+            const icon = document.createElement('span');
+            icon.className = expandAll ? 'folder-icon expanded' : 'folder-icon';
+            icon.innerText = expandAll ? '📂' : '📁';
+            content.appendChild(icon);
+            
+            const name = document.createElement('span');
+            name.className = 'file-name';
+            name.innerText = file.name;
+            content.appendChild(name);
+            
+            item.appendChild(content);
+            container.appendChild(item);
+            
+            // Create a container for children
+            const childContainer = document.createElement('div');
+            childContainer.className = 'file-children';
+            childContainer.style.display = expandAll ? 'block' : 'none';
+            
+            // Recursively render children if they exist
+            if (file.children && file.children.length > 0) {
+                file.children.forEach((child: any) => {
+                    this.renderFileItem(child, childContainer, level + 1, expandAll);
+                });
+            }
+            
+            // Add click handler to toggle visibility
+            content.addEventListener('click', () => {
+                // Toggle expanded state
+                const isExpanded = icon.classList.contains('expanded');
+                icon.classList.toggle('expanded');
+                icon.innerText = isExpanded ? '📁' : '📂';
+                childContainer.style.display = isExpanded ? 'none' : 'block';
+            });
+            
+            container.appendChild(childContainer);
+        } else {
+            // For files, add selection functionality
+            const icon = document.createElement('span');
+            icon.className = 'file-icon';
+            icon.innerText = '📄';
+            content.appendChild(icon);
+            
+            const name = document.createElement('span');
+            name.className = 'file-name';
+            name.innerText = file.name;
+            content.appendChild(name);
+            
+            // Add click handler to select file
+            item.addEventListener('click', () => {
+                // Use selectFile method instead of toggleFileSelection
+                this.selectFile(file.path);
+            });
+            
+            // Mark as selected if it's in the selectedFilePaths
+            if (this.selectedFilePaths.has(file.path)) {
+                item.classList.add('selected');
+            }
+            
+            item.appendChild(content);
+            container.appendChild(item);
+        }
+    }
+
+    // Add a method to load the initial file tree with all directories expanded
+    public loadInitialFileTree(files: FileTreeItem[]) {
+        // Store the full file tree in the root level
+        this.fileList[''] = files;
+        
+        // Pre-populate the expanded directories set with all directory paths
+        const populateExpanded = (items: FileTreeItem[], parentPath: string = '') => {
+            for (const item of items) {
+                if (item.type === 'directory') {
+                    this.expandedDirectories.add(item.path);
+                    // Also create an entry in the fileList for this directory
+                    if (item.children) {
+                        this.fileList[item.path] = item.children;
+                        populateExpanded(item.children, item.path);
+                    }
+                }
+            }
+        };
+        
+        populateExpanded(files);
+        
+        // Update the dropdown with the root level files
+        this.updateDropdown(files);
+        this.showDropdown();
+    }
+
+    // Add methods to expand and collapse all directories
+    private expandAllDirectories() {
+        // Pre-populate the expanded directories set with all directory paths
+        const populateExpanded = (items: FileTreeItem[]) => {
+            for (const item of items) {
+                if (item.type === 'directory') {
+                    this.expandedDirectories.add(item.path);
+                    if (item.children) {
+                        populateExpanded(item.children);
+                    }
+                }
+            }
+        };
+        
+        populateExpanded(this.fileList[''] || []);
+        
+        // Refresh the current view
+        if (this.lastQuery) {
+            this.lastResults = this.filterFiles(this.lastQuery);
+            this.updateDropdown(this.lastResults);
+        } else {
+            this.updateDropdown(this.fileList[''] || []);
+        }
+    }
+
+    private collapseAllDirectories() {
+        // Clear all expanded directories except the root
+        this.expandedDirectories.clear();
+        
+        // Refresh the current view
+        if (this.lastQuery) {
+            this.lastResults = this.filterFiles(this.lastQuery);
+            this.updateDropdown(this.lastResults);
+        } else {
+            this.updateDropdown(this.fileList[''] || []);
+        }
     }
 }

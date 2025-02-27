@@ -104,7 +104,7 @@ export function getStyles(): string {
             top: 100%;
             left: 0;
             right: 0;
-            max-width: 300px;
+            max-width: 500px; /* Increase from 300px */
             background: var(--vscode-dropdown-background);
             border: 1px solid var(--vscode-dropdown-border);
             z-index: 1000;
@@ -280,4 +280,4 @@ export function getStyles(): string {
             color: var(--vscode-textPreformat-foreground);
         }
     `;
-} 
+}
