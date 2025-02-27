@@ -51,8 +51,10 @@ export class PanelStateHandler {
 
             this.setupIgnoreFilter(workspaceRoot);
 
-            // Load entire workspace hierarchically with all files expanded
+            // Build a full recursive file tree structure
             const tree = await this.buildFullFileTree(workspaceRoot, '');
+            
+            // Send the complete tree to the webview
             await this.webview.postMessage({
                 command: 'fileTree',
                 data: tree
